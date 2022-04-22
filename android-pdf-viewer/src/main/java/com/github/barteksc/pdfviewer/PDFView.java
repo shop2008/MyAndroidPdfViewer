@@ -34,6 +34,7 @@ import android.os.Build;
 import android.os.HandlerThread;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.widget.RelativeLayout;
 
 import com.github.barteksc.pdfviewer.exception.PageRenderingException;
@@ -329,6 +330,23 @@ public class PDFView extends RelativeLayout {
         }
 
         callbacks.callOnPageChange(currentPage, pdfFile.getPagesCount());
+    }
+
+    public float[] convertScreenPointToPdfCoords(MotionEvent e) {
+        float mappedX = -getCurrentXOffset() + e.getX();
+        float mappedY = -getCurrentYOffset() + e.getY();
+        int page = pdfFile.getPageAtOffset(isSwipeVertical() ? mappedY : mappedX, getZoom());
+        int pageX, pageY;
+        if (isSwipeVertical()) {
+            pageX = (int) pdfFile.getSecondaryPageOffset(page, getZoom());
+            pageY = (int) pdfFile.getPageOffset(page, getZoom());
+        } else {
+            pageY = (int) pdfFile.getSecondaryPageOffset(page, getZoom());
+            pageX = (int) pdfFile.getPageOffset(page, getZoom());
+        }
+        SizeF pageSize = pdfFile.getScaledPageSize(page, getZoom());
+        return pdfFile.convertScreenPointToPdfCoords(mappedX, mappedY, pageX, pageY, page,
+                pageSize);
     }
 
     /**

@@ -321,6 +321,16 @@ class PdfFile {
         return pdfiumCore.mapRectToDevice(pdfDocument, docPage, startX, startY, sizeX, sizeY, 0, rect);
     }
 
+    public float[] convertScreenPointToPdfCoords(float screenX, float screenY, float pageX,
+            float pageY, int pageIndex, SizeF pageSize) {
+        // 左上角0，0 需要转换成pdf坐标 左下角0，0
+        int w = pdfiumCore.getPageWidthPoint(pdfDocument, pageIndex);
+        int h = pdfiumCore.getPageHeightPoint(pdfDocument, pageIndex);
+        float pointInPageX = (screenX - pageX) / pageSize.getWidth() * w;
+        float pointInPageY = (pageSize.getHeight() - (screenY - pageY)) / pageSize.getHeight() * h;
+        return new float[]{pointInPageX, pointInPageY};
+    }
+
     public void dispose() {
         if (pdfiumCore != null && pdfDocument != null) {
             pdfiumCore.closeDocument(pdfDocument);
