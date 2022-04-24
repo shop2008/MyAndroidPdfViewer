@@ -71,7 +71,8 @@ class DragPinchManager implements GestureDetector.OnGestureListener, GestureDete
     public boolean onSingleTapConfirmed(MotionEvent e) {
         boolean onTapHandled = pdfView.callbacks.callOnTap(e);
         boolean linkTapped = checkLinkTapped(e.getX(), e.getY());
-        if (!onTapHandled && !linkTapped) {
+        boolean pagTapped = checkPageTapped(e.getX(), e.getY());
+        if (!onTapHandled && !linkTapped && !pagTapped) {
             ScrollHandle ps = pdfView.getScrollHandle();
             if (ps != null && !pdfView.documentFitsView()) {
                 if (!ps.shown()) {
@@ -83,6 +84,33 @@ class DragPinchManager implements GestureDetector.OnGestureListener, GestureDete
         }
         pdfView.performClick();
         return true;
+    }
+
+    private boolean checkPageTapped(float x, float y) {
+        PdfFile pdfFile = pdfView.pdfFile;
+        if (pdfFile == null) {
+            return false;
+        }
+        float mappedX = -pdfView.getCurrentXOffset() + x;
+        float mappedY = -pdfView.getCurrentYOffset() + y;
+        int page = pdfFile.getPageAtOffset(pdfView.isSwipeVertical() ? mappedY : mappedX, pdfView.getZoom());
+        SizeF pageSize = pdfFile.getScaledPageSize(page, pdfView.getZoom());
+        int pageX, pageY;
+        if (pdfView.isSwipeVertical()) {
+            pageX = (int) pdfFile.getSecondaryPageOffset(page, pdfView.getZoom());
+            pageY = (int) pdfFile.getPageOffset(page, pdfView.getZoom());
+        } else {
+            pageY = (int) pdfFile.getSecondaryPageOffset(page, pdfView.getZoom());
+            pageX = (int) pdfFile.getPageOffset(page, pdfView.getZoom());
+        }
+        // 写死的页码区域rect
+        RectF pageRect = new RectF(pageX + 50, pageY + 50, pageX + 250, pageY + 150);
+        pageRect.sort();
+        if (pageRect.contains(mappedX, mappedY)) {
+            pdfView.callbacks.callOnTapPage(page);
+            return true;
+        }
+        return false;
     }
 
     private boolean checkLinkTapped(float x, float y) {

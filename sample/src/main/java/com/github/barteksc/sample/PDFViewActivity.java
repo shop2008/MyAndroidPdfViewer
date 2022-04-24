@@ -1,17 +1,15 @@
 /**
  * Copyright 2016 Bartosz Schiller
  * <p/>
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
+ * in compliance with the License. You may obtain a copy of the License at
  * <p/>
  * http://www.apache.org/licenses/LICENSE-2.0
  * <p/>
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software distributed under the License
+ * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
+ * or implied. See the License for the specific language governing permissions and limitations under
+ * the License.
  */
 package com.github.barteksc.sample;
 
@@ -19,20 +17,31 @@ import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
+import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.Rect;
+import android.graphics.RectF;
 import android.net.Uri;
+import android.os.Build;
 import android.provider.OpenableColumns;
 import android.support.annotation.NonNull;
+import android.support.annotation.RequiresApi;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
+import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.widget.Toast;
 
 import com.github.barteksc.pdfviewer.PDFView;
+import com.github.barteksc.pdfviewer.listener.OnDrawListener;
 import com.github.barteksc.pdfviewer.listener.OnLoadCompleteListener;
 import com.github.barteksc.pdfviewer.listener.OnPageChangeListener;
 import com.github.barteksc.pdfviewer.listener.OnPageErrorListener;
+import com.github.barteksc.pdfviewer.listener.OnPageTapListener;
+import com.github.barteksc.pdfviewer.listener.OnTapListener;
 import com.github.barteksc.pdfviewer.scroll.DefaultScrollHandle;
 import com.github.barteksc.pdfviewer.util.FitPolicy;
 import com.shockwave.pdfium.PdfDocument;
@@ -45,11 +54,13 @@ import org.androidannotations.annotations.OptionsItem;
 import org.androidannotations.annotations.OptionsMenu;
 import org.androidannotations.annotations.ViewById;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @EActivity(R.layout.activity_main)
 @OptionsMenu(R.menu.options)
-public class PDFViewActivity extends AppCompatActivity implements OnPageChangeListener, OnLoadCompleteListener,
+public class PDFViewActivity extends AppCompatActivity implements OnPageChangeListener,
+        OnLoadCompleteListener,
         OnPageErrorListener {
 
     private static final String TAG = PDFViewActivity.class.getSimpleName();
@@ -119,11 +130,34 @@ public class PDFViewActivity extends AppCompatActivity implements OnPageChangeLi
                 .onPageChange(this)
                 .enableAnnotationRendering(true)
                 .onLoad(this)
-                .scrollHandle(new DefaultScrollHandle(this))
+                .scrollHandle(new MyScrollHandle(this))
                 .spacing(10) // in dp
                 .onPageError(this)
                 .pageFitPolicy(FitPolicy.BOTH)
+                .onDrawAll(new OnDrawListener() {
+                    @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
+                    @Override
+                    public void onLayerDrawn(Canvas canvas, float pageWidth, float pageHeight,
+                            int displayedPage) {
+                        Paint paint = new Paint();
+                        paint.setColor(Color.YELLOW);
+                        canvas.drawRect(new RectF(50, 50, 250, 150), paint);
+                        paint.setColor(Color.BLACK);
+                        paint.setTextSize(50);
+                        canvas.drawText("Page " + displayedPage, 50, 100, paint);
+                    }
+                })
+                .onPageTap(new OnPageTapListener() {
+                    @Override
+                    public boolean onPageTap(int page) {
+                        Toast.makeText(getBaseContext(), "tap " + page, Toast.LENGTH_SHORT).show();
+                        return true;
+                    }
+                })
                 .load();
+        pdfView.setMinZoom(0.5f);
+        pdfView.setMidZoom(1.0f);
+        pdfView.setMaxZoom(2.0f);
     }
 
     private void displayFromUri(Uri uri) {
